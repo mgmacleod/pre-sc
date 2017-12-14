@@ -1,11 +1,5 @@
 /*
-FIXME Mute buttons not working when switching from loop to cut. Add individual mutes
-FIXME Generative hits to read frmo channel amp
-FIXME Auto analyse or nil for un-analysed loops
 
-TODO Range settings for automation
-TODO Stop windows from being resizable. Not mixer?
-TODO Alt click reset faders...
 */
 PreLoop {
 
