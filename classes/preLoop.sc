@@ -396,7 +396,7 @@ PreLoop {
 			clock = In.ar(clockIn);
 			phase = clock%BufFrames.kr(bufnum);
 			phase2 = (clock%oneBeat)+(s.sampleRate/50)%oneBeat;
-
+			phase2.poll;
 
 			trig = In.kr(trigger);
 

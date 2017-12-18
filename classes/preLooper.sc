@@ -16,12 +16,9 @@ PreLooper {
 	var <duffBuf;			//Blank buffer used for analysis synth when not analysing
 	var <loopSynths;		//List of looping synths
 	var <onSynth;			//Synth that is always 'on'
-	var <onsetFrames;		//List of frames for analysis loop onsets
-	var <onsetsList;		//List of lists storing all onsets
 	var <currentLoopIndex;	//Index of the loop buffer currently 'on the table'
 	var <>recSynth;			//Recording Synth
 	var <>metroSynth;		//Metronome Synth
-	var <>onsetSynth;		//Onset Detection Synth
 	var <>oscr;				//OSC Responder for timing
 	var <mixoscr;			//OSC Responder for mixer channels
 
@@ -37,11 +34,7 @@ PreLooper {
 	var <nowRecording;		//Boolean, whether or recording is taking place
 	var <doneCropping;
 	var <reallyCropping;
-	var <nowAnalysing;		//Boolean, whether or not onset frame collection is taking place
-	var <cuttingList;		//List of whether a layer should be looping or cutting
 
-	var <onsetMeter;		//LED Meter for onset detector
-	var <onsetLED;			//LED for onset detector
 	var <inMeter;			//LED Meter for input signal
 	var <guiMixer;			//The mixer GUI
 	var <guiMixerHeight;	//Height of the mixer GUI
@@ -49,14 +42,9 @@ PreLooper {
 	var <guiMixerNextX;		//The next X value to build a channel at
 	var <guiMixerMeters;	//A collection of meters for channels
 	var <guiMixerLoopFaders;//The mixer sliders for the channel loop synths
-	var <guiMixerCutFaders;	//The mixer sliders for the channel cut synths
 	var <guiMixerPans;		//The pan values of channels
-	var <channelRoutines;	//The routines for each channel
-	var <channelProbs;		//The trigger probabilities for each channel
 	var <channelLoopAmps;	//The amplitudes for each channels looping synth
-	var <channelCutAmps;	//The amplitudes for each channels cutting synth
 	var <channelLoopMutes;	//The mute value for each channels looping synth
-	var <channelCutMutes;	//The mute value for each channels cutting synth
 
 	var <>cropFrame;		//Frame to crop at
 	var <>tempo;			//Tempo
@@ -70,10 +58,10 @@ PreLooper {
 			aBufferTime = aBufferTime - bufferMod
 		};
 
-		^super.new.genLoopInit(aTempo, aTimeSig, aBufferTime);
+		^super.new.preLooperInit(aTempo, aTimeSig, aBufferTime);
 	}
 
-	genLoopInit{|aTempo, aTimeSig, aBufferTime|
+	preLooperInit{|aTempo, aTimeSig, aBufferTime|
 
 		//Store default server
 		s = Server.default;
@@ -92,26 +80,17 @@ PreLooper {
 		loopBufs = List[];
 		duffBuf = Buffer.alloc(s, 1024);
 		loopSynths = List[];
-		onsetFrames = List[];
-		onsetsList = List[];
 		currentLoopIndex = 0;
 		guiMixerHeight = 340;
 		guiMixerMeters = List[];
 		guiMixerLoopFaders = List[];
-		guiMixerCutFaders = List[];
 		guiMixerPans = List[];
-		channelRoutines = List[];
 
 		nowRecording = false;
 		doneCropping = false;
 		reallyCropping = false;
-		nowAnalysing = false;
-		cuttingList = List[];
-		channelProbs = List[];
 		channelLoopAmps = List[];
-		channelCutAmps = List[];
 		channelLoopMutes = List[];
-		channelCutMutes = List[];
 
 		beatCounter = 0;
 		totalRecBeats = 0;
@@ -134,12 +113,12 @@ PreLooper {
 	setMainGUI {
 		var win;
 		var winW, winH;
-		var recBut, analyseBut, loopBut, metroBut;
+		var recBut, loopBut, metroBut;
 		var slider;
 		var onsetMeterText, onsetText, inMeterText;
 		var inputPopup;
 
-		win = Window.new("GenLoop", Rect((Window.screenBounds.width/2)-200, (Window.screenBounds.height/2), 400, 400));
+		win = Window.new("PreLooper", Rect((Window.screenBounds.width/2)-200, (Window.screenBounds.height/2), 400, 400));
 		winW = win.bounds.width;
 		winH = win.bounds.height;
 		recBut = Button.new(win, Rect(62.5, 25, 75, 75));
@@ -153,18 +132,6 @@ PreLooper {
 					this.stopRecordingAction;
 					0.yield;
 				};
-			};
-		);
-
-		analyseBut = Button.new(win, Rect(262.5, 25, 75, 75));
-		analyseBut.states = [["Analyse", Color.white, Color.grey]];
-
-		analyseBut.mouseDownAction_(
-			Routine {
-				inf.do {
-					this.startAnalysis;
-					0.yield;
-				}
 			};
 		);
 
@@ -182,19 +149,6 @@ PreLooper {
 			};
 		);
 
-		slider = EZSlider.new(
-			win,
-			Rect((winW/10)*9, winH/2-20, 20, 180),
-			"Onset Threshold  ",
-			ControlSpec.new(0, 1, 'linear', 0.001),
-			{|ez| onsetSynth.set(\val, ez.value)},
-			0.5,
-			labelWidth:120,
-			numberWidth:22,
-
-			layout: \line2
-		);
-
 		inMeter = LevelIndicator(win, Rect((winW/10), winH/2, 30, 160));
 		inMeter.style_(\led).value_(1);
 		inMeter.numSteps = 10;
@@ -203,24 +157,8 @@ PreLooper {
 		inMeterText = StaticText(win, Rect((winW/10), winH/2+160, 20, 20));
 		inMeterText.string = "In";
 
-		onsetText = StaticText(win, Rect((winW/10)*9, winH/2+160, 20, 20));
-		onsetText.string = "OD";
-		onsetLED = LevelIndicator(win, Rect((winW/10)*9, winH/2-40, 20, 20));
-		onsetLED.style_(\led).value_(1);
-		onsetLED.numSteps = 1;
-
-		onsetMeter = LevelIndicator(win, Rect((winW/5)*4, winH/2, 30, 160));
-		onsetMeter.style_(\led).value_(1);
-		onsetMeter.numSteps = 10;
-		onsetMeter.numTicks = 11;
-		onsetMeter.numMajorTicks = 3;
-
-		onsetMeterText = StaticText(win, Rect((winW/5)*4, winH/2+160, 20, 20));
-		onsetMeterText.string = "VU";
-
-		// FIXME This should read the no. of available channels
 		inputPopup = EZPopUpMenu.new(win,Rect((winW/10)-10,(winH/2)-55,40,40), " Input",layout:\vert);
-		50.do { |i|
+		8.do { |i|
 			inputPopup.addItem((i+1).asSymbol, {this.setInput(i)});
 		};
 		inputPopup.setColors(Color.grey,Color.white);
@@ -238,7 +176,7 @@ PreLooper {
 	}
 
 	newGUIChannel {|index|
-		var chan, lvl, loopMute, cutMute, loopFader, cutFader, probFader, probSpecs, pan, panSpec, panVal, panText, automate, cutOrLoop;
+		var chan, lvl, loopMute, loopFader, pan, panSpec, panVal, panText;
 
 		var faderFunc = {|x, label, spec, initVal=1|
 			var fader=EZSlider(guiMixer, Rect(guiMixerNextX+x,0,25,260), label, spec, initVal:initVal, unitWidth:25, numberWidth:25,layout:\vert);
@@ -270,27 +208,7 @@ PreLooper {
 			});
 			guiMixerLoopFaders.add(loopFader);
 
-			cutFader = faderFunc.(50, "Cuts", \db.asSpec.step_(0.01));
-			cutFader.action_({|ez|
-				channelCutAmps[index] = ez.value.dbamp;
-				this.setChannelAmp(index);
-			});
-			guiMixerCutFaders.add(cutFader);
-
-			probFader = faderFunc.(75, "Prob", ControlSpec.new(0,1,\lin,0.01), 0.25);
-			probSpecs = [
-				[0.5, 		0.95,	\linear, 0.01, 0.95		].asSpec,
-				[0.2, 		0.7, 	\linear, 0.01, 0.5		].asSpec,
-				[0.125, 	0.8, 	\linear, 0.01, 0.125	].asSpec,
-				[0.0625, 	0.7, 	\linear, 0.01, 0.0625	].asSpec
-			];
-
-			probFader.action_({|ez|
-				probSpecs.size.do { |i|	channelProbs[index][i] = probSpecs[i].map(ez.value)};
-			});
-
 			loopMute 	= muteButFunc.(0, channelLoopMutes);
-			cutMute 	= muteButFunc.(25, channelCutMutes);
 
 			pan = Slider(guiMixer, Rect(guiMixerNextX+25,280,75,20));
 			pan.value = 0.5;
@@ -303,36 +221,9 @@ PreLooper {
 			panText.font_(Font("Helvetica",10));
 			guiMixerPans.add(pan);
 
-			channelRoutines.add(this.setChannelAutomation(index));
-			automate = Button(guiMixer, Rect(guiMixerNextX, 300, 100, 20));
-			automate.states_([["Manual", Color.white, Color.grey],["Automated", Color.white, Color.red]]);
-
-			automate.action_(
-				Routine { inf.do {
-					this.channelRoutines[index].reset;
-					this.channelRoutines[index].play;
-					0.yield;
-					this.channelRoutines[index].stop;
-					0.yield
-				}}
-			);
-
-			cutOrLoop = Button(guiMixer, Rect(guiMixerNextX, 320, 100, 20));
-			cutOrLoop.states_([["Looping", Color.black, Color.white],["Cutting", Color.white, Color.black]]);
-			cutOrLoop.action_(
-				Routine { inf.do {
-					/*					"hi".postln;*/
-					this.cutButFunc(index);
-					0.yield;
-					/*					"bye".postln;*/
-					this.loopButFunc(index);
-					0.yield
-				}}
-			);
-
-			guiMixerNextX = guiMixerNextX + 125;
+			guiMixerNextX = guiMixerNextX + 100;
 			guiMixerRect = guiMixer.bounds;
-			guiMixerRect.width_(guiMixerRect.width+125);
+			guiMixerRect.width_(guiMixerRect.width+100);
 			guiMixer.bounds = guiMixerRect;
 		}.defer;
 	}
@@ -340,10 +231,10 @@ PreLooper {
 	setSynthDefs {
 
 		//Time Keeper SynthDef
-		SynthDef(\clickTrack) { |buf, tempo, oneBeat, timeSig, outClock, recTrigger=0, outStartRecBus, beepVol=1|
+		SynthDef(\clickTrack) { |buf, tempo, oneBeat, timeSig, outClock, recTrigger=0, outStartRecBus, onsetTrigger=0, outStartOnsetBus, beepVol=1|
 			var phase;
-			var quarterTrig, barTrig, eighthTrig, sixteenthTrig;
-			var quarterSTrig, barSTrig, eighthSTrig, sixteenthSTrig;
+			var quarterTrig, barTrig;
+			var quarterSTrig, barSTrig;
 			var beep, beepEnvFunc, env1, env2;
 
 			phase = Phasor.ar(0, BufRateScale.kr(buf), 0, inf, 0);
@@ -354,25 +245,18 @@ PreLooper {
 
 			barTrig = Trig.ar(phase+1 % (oneBeat*timeSig));
 			quarterTrig = Trig.ar(phase+1 % oneBeat);
-			eighthTrig = Trig.ar(phase+1 % (oneBeat*0.5));
-			sixteenthTrig = Trig.ar(phase+1 % (oneBeat*0.25));
 
 			barSTrig = SendTrig.kr(A2K.kr(barTrig), 1, timeSig);
 			quarterSTrig = SendTrig.kr(A2K.kr(quarterTrig), 2, 1);
-			eighthSTrig = SendTrig.kr(A2K.kr(eighthTrig), 3, 1);
-			sixteenthSTrig = SendTrig.kr(A2K.kr(sixteenthTrig), 5, 1);
 
 			//Output clock data
 			Out.ar(outClock, phase);
 
 			//Output recStart trigger
-			Out.kr(outStartRecBus, Latch.kr(recTrigger, quarterTrig));
+			Out.kr(outStartRecBus, Latch.kr(recTrigger, barTrig));
 
 			//Output loopStart trigger
-
-			//onsetTrigger.poll;
-
-			Out.kr(outStartOnsetBus, Select.kr(onsetTrigger, [DC.kr(0), A2K.kr(quarterTrig)]));
+			Out.kr(outStartOnsetBus, Select.kr(onsetTrigger, [DC.kr(0), A2K.kr(barTrig)]));
 
 			//Output metronome Beeps
 			Out.ar(0, Pan2.ar(Mix.new([beep[0]*beepEnvFunc.(A2K.kr(barTrig)), beep[1]*beepEnvFunc.(A2K.kr(quarterTrig))]), 1));
@@ -380,11 +264,12 @@ PreLooper {
 		}.send(s);
 
 		//Recording SynthDef
-		SynthDef(\GCRec) { |sigIn=0, out=0, clockIn, bufnum, trigger, stopRec=0, oneBeat|
+		SynthDef(\GCRec) { |sigIn=0, out=0, clockIn, bufnum, trigger, stopRec=0, oneBar|
 			var inSig;
 			var clock;
 			var phase;
 			var phase2;
+			var p3;
 			var env;
 			var sig;
 			var trig;
@@ -395,8 +280,10 @@ PreLooper {
 			inSig = SoundIn.ar(sigIn);
 			clock = In.ar(clockIn);
 			phase = clock%BufFrames.kr(bufnum);
-			phase2 = (clock%oneBeat)+(s.sampleRate/50)%oneBeat;
+			phase2 = (clock%oneBar)+(s.sampleRate/50)%oneBar;
 
+			p3 = clock % 4;
+			p3.poll;
 
 			trig = In.kr(trigger);
 
@@ -413,27 +300,6 @@ PreLooper {
 
 			Out.ar(out, inSig*env)
 		}.send(s);
-
-		//Loop and Onset detection SynthDef
-		SynthDef(\onTrig, {|clockIn, bufnum, val=0.5|
-			var sig, chain, onsets, phase, sendVal;
-			var imp, delimp;
-
-			phase = In.ar(clockIn);
-
-			sig = BufRd.ar(1, bufnum, phase, 1, 4);
-
-			chain = FFT(LocalBuf(1024), sig);
-			onsets = Onsets.kr(chain, val, \rcomplex);
-			SendTrig.kr(onsets, 4, phase);
-
-			imp = Impulse.kr(10);
-			delimp = Delay1.kr(imp);
-			// measure rms and Peak
-			SendReply.kr(imp, '/tr', [Amplitude.kr(sig), K2A.ar(Peak.ar(sig, delimp).lag(0, 3))], 6);
-
-			SendTrig.kr(onsets, 7, onsets);
-		}).send(s);
 
 		//Simple looping synth
 		SynthDef(\GCPlay) { |bufnum, trigBus, clockOut, amp=1, pan=0, index, ampLag=0, panLag=0|
@@ -464,21 +330,6 @@ PreLooper {
 			Out.ar(0, Pan2.ar(sig*select, Lag.kr(pan, panLag)));
 		}.send(s);
 
-		//Loop for playing back a specific portion of a buffer
-		SynthDef(\GCHit) { |bufnum, startFrame, endFrame, rate=1, amp=1|
-			var sig;
-			var phase;
-			var dur;
-			var env;
-
-			dur = (endFrame-startFrame)/(BufSampleRate.kr(bufnum)*rate);
-			phase = Line.ar(startFrame, endFrame, dur);
-			sig = BufRd.ar(1, bufnum, phase, 0);
-			env = EnvGen.ar(Env.new([0,1,1,0], [0.02, dur-0.05, 0.03 ]), doneAction:2);
-
-			Out.ar(0, Pan2.ar((sig*env)*amp, 0));
-		}.send(s);
-
 		SynthDef(\onBus) { |outBus|
 			Out.kr(outBus,
 				DC.kr(1);
@@ -499,10 +350,7 @@ PreLooper {
 			metroSynth = Synth(\clickTrack, [	\buf, recBuf, \outClock, clockBus, \tempo, tempo, \timeSig, timeSig, \oneBeat, oneBeat,
 				\recTrigger, 0, \outStartRecBus, recStartBus, \onsetTrigger, 0, \outStartOnsetBus, onsetStartBus, \beepVol, 1]);
 			//Instantiate recording synth
-			recSynth = Synth.after(metroSynth, \GCRec, [\bufnum, recBuf, \clockIn, clockBus, \trigger, recStartBus, \oneBeat, oneBeat]);
-
-			//Instantiate onset detection synth
-			onsetSynth = Synth.after(metroSynth, \onTrig, [\clockIn, analysisClockBus, \bufnum, duffBuf]);
+			recSynth = Synth.after(metroSynth, \GCRec, [\bufnum, recBuf, \clockIn, clockBus, \trigger, recStartBus, \oneBar, oneBeat*timeSig]);
 
 			onSynth = Synth(\onBus, [\outBus, alwaysOnBus]);
 
@@ -521,11 +369,6 @@ PreLooper {
 			//	0	Input Levels
 			//	1	Beat One
 			//	2	quarters
-			//	3	eighths
-			//	4	Onsets Frames
-			//	5	sixteenths
-			//	6	Onset loop Level
-			//	7	Onset LED
 
 			switch (msg[2])
 			{0}	{
@@ -535,27 +378,7 @@ PreLooper {
 				}.defer
 			}
 			{1}	{ this.barOSCAction }
-			{2}	{ this.quarterOSCAction }
-			{3}	{ this.eighthOSCAction }
-			{4}	{
-				if(nowAnalysing) {
-					onsetFrames.add(msg[3])
-				};
-			}
-			{5}	{ this.sixteenthOSCAction }
-			{6}	{
-				{
-					onsetMeter.value = msg[3].ampdb.linlin(-40, 0, 0, 1);
-					onsetMeter.peakLevel = msg[4].ampdb.linlin(-40, 0, 0, 1);
-				}.defer
-			}
-			{7}	{
-				{
-					{onsetLED.value = msg[3]/msg[3]}.defer;
-					0.1.wait;
-					{onsetLED.value = 0}.defer ;
-				}.fork
-			};
+			{2}	{ this.quarterOSCAction };
 
 		}).add;
 
@@ -568,36 +391,18 @@ PreLooper {
 	}
 
 	barOSCAction {
-		this.allHitFuncs(0);
+
 	}
 
 	quarterOSCAction {
-
 		this.adjustCounters;
-
 		this.nowRecordingFunc;
-
-		this.nowAnalysingFunc;
-
 		this.doneCroppingFunc;
-
-		this.allHitFuncs(1);
-
-	}
-
-	eighthOSCAction {
-		this.allHitFuncs(2);
-	}
-
-	sixteenthOSCAction {
-		this.allHitFuncs(3);
 	}
 
 	adjustCounters {
 		currentBeat = (beatCounter%timeSig) + 1;
-
 		bufferBeat = (beatCounter%bufferTime);
-
 		beatCounter = beatCounter + 1;
 	}
 
@@ -607,38 +412,18 @@ PreLooper {
 		);
 	}
 
-	nowAnalysingFunc {
-		var tempBuf;
-		var tempSynths;
-
-		if(nowAnalysing) {
-			if(totalLoopBeats!=0) {
-				totalLoopBeats = totalLoopBeats - 1;
-			} {
-				nowAnalysing = false;
-				onsetsList.add(onsetFrames);
-				onsetFrames = List[];
-				channelProbs.add([0.95,0.6,0.25,0.125]);
-				"finished analysis".postln;
-				this.stopOnsetSynth;
-			};
-		};
-	}
-
 	doneCroppingFunc {
 		if(doneCropping) {
 
 			s.makeBundle(0.2, {
 				//prevent synth from being re-triggered
 				loopSynths[currentLoopIndex].set(\amp, 1, \trigBus, alwaysOnBus);
-				onsetSynth.set(\bufnum, loopBufs[currentLoopIndex]);
 				recSynth.set(\stopRec, 0);
 			});
 			s.makeBundle(0.2, {
 				metroSynth.set(\onsetTrigger, 0);
 			});
 			doneCropping = false;
-			cuttingList.add(false);
 		};
 	}
 
@@ -660,7 +445,7 @@ PreLooper {
 		nowRecording = true;
 
 		//Add a default amplitude and mute value
-		[channelLoopAmps, channelCutAmps, channelLoopMutes, channelCutMutes].do { |item, i|
+		[channelLoopAmps, channelLoopMutes].do { |item, i|
 			item.add(1)
 		};
 	}
@@ -698,7 +483,6 @@ PreLooper {
 		var newBuf;
 		var syn;
 
-
 		fakeEndVal = startBeat+totalBeats;
 
 		firstLot = bufferTime-startBeat;
@@ -725,31 +509,12 @@ PreLooper {
 		//Erase recording buffer
 		totalLoopBeats = totalRecBeats;
 		totalRecBeats = 0;
-		doneCropping = true;
-	}
-
-	startAnalysis {
-		nowAnalysing = true;
 	}
 
 	loopButFunc {|index|
 		//set analysis synth buffer to duffBuf
 		this.stopOnsetSynth;
-		//Turn up loop volume
-		/*		this.setChannelAmp(index);*/
-		//Turn off cutting
-		cuttingList[index] = false;
-
 		"now looping".postln;
-	}
-
-	cutButFunc {|index|
-		//set analysis synth buffer to duffBuf
-		this.stopOnsetSynth;
-		//Turn down loop volume
-		/*		this.setChannelAmp(index);*/
-		//Activate cutting
-		cuttingList[index] = true;
 	}
 
 	//Method to undo a bad loop
@@ -760,82 +525,17 @@ PreLooper {
 		//Free the buffer and remove it from storage
 		loopBufs[currentLoopIndex].free;
 		loopBufs.removeAt(currentLoopIndex);
-
-		//If the loop has been analysed, delete the analysis data
-		if(onsetsList[currentLoopIndex]!=nil) {
-			onsetsList.removeAt(currentLoopIndex)
-		};
-
-		//remove cutting trigger
-		if(cuttingList[currentLoopIndex]!=nil) {
-			cuttingList.removeAt(currentLoopIndex);
-		};
 	}
 
 	stopOnsetSynth {
 		s.makeBundle(0.2, {
-			onsetSynth.set(\bufnum, duffBuf);
+			//onsetSynth.set(\bufnum, duffBuf);
 			loopSynths[currentLoopIndex].set(\clockOut, duffAudioBus);
 		});
 	}
 
 	plotRecBuf {
 		recBuf.plot;
-	}
-
-	hitFunc {|bufnum, startFrame, endFrame, rate=1, amp|
-		s.makeBundle(nil, {
-			Synth(\GCHit, [\bufnum, bufnum, \startFrame, startFrame, \endFrame, endFrame, \rate, rate, \amp, amp]);
-		});
-	}
-
-	randomHitFunc {|chance=1, bufnum, hitList, amp|
-		var hit;
-		var startFrame, endFrame;
-		var rate;
-
-		if(chance.coin) {
-			hit = hitList.size.rand;
-			startFrame = hitList[hit];
-
-			if( hit == (hitList.size-1) ) {
-				endFrame = bufnum.numFrames;
-
-			} {
-				endFrame = hitList[hit+1];
-			};
-			rate = [-1,0.5,1,2].wchoose([0.15,0.1,0.6,0.15]);
-
-			this.hitFunc(bufnum, startFrame, endFrame, rate, amp)
-		};
-
-	}
-
-	allHitFuncs {|index|
-		cuttingList.size.do { |i|
-			if(cuttingList[i]) {
-				this.randomHitFunc(channelProbs[i][index], loopBufs[i], onsetsList[i], channelCutAmps[i]*channelCutMutes[i])
-			};
-		};
-	}
-
-	setChannelAutomation {|index|
-		var rout = Routine {
-			var waitTime, ampVal, panVal;
-			inf.do {
-				waitTime = 5.rand;
-				ampVal = 1.0.rand.ampdb;
-				panVal = rrand(-1.0, 1.0);
-				{
-					loopSynths[index].set(\ampLag, waitTime, \panLag, waitTime);
-					guiMixerLoopFaders[index].valueAction_(ampVal);
-					guiMixerCutFaders[index].valueAction_(ampVal);
-					guiMixerPans[index].valueAction_(panVal);
-				}.defer;
-				waitTime.wait;
-			};
-		};
-		^rout;
 	}
 
 	setChannelAmp {|index|
@@ -850,7 +550,6 @@ PreLooper {
 		s.makeBundle(0.2, {
 			recSynth.free;
 			metroSynth.free;
-			onsetSynth.free;
 			onSynth.free;
 			recBuf.free;
 			clockBus.free;
@@ -861,7 +560,6 @@ PreLooper {
 			alwaysOnBus.free;
 			loopSynths.do { |item, i| item.free };
 			loopBufs.do { |item, i| item.free };
-			channelRoutines.do { |item, i| item.stop};
 			guiMixer.close;
 		});
 	}
