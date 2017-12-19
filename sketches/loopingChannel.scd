@@ -7,7 +7,7 @@ a signal of some sort from a button / MIDI controller to stop, and then schedule
 
 
 (
-
+var fontName = "Input Mono";
 var click_out = 0;
 var loopTime = 60;  // a long loop time in seconds
 var win = Window("Stupid Looper", Rect(100, 200, 800, 200)).front;
@@ -16,10 +16,13 @@ var layout = win.addFlowLayout((0@0), (0@0));
 var container = ();
 var size = (40@40);
 var metronome = ();
-var font = Font("Input Mono", 18);
+var font = Font(fontName, 18);
 var buffer = nil!numbufs;
 var player = nil!numbufs;
-var button = nil!numbufs;
+var recorder_button = nil!numbufs;
+var player_button = nil!numbufs;
+var loopEndFrames = nil!numbufs;
+
 var reload_func = {
 	numbufs.do{ |i|
 		buffer[i].free;
@@ -81,65 +84,56 @@ StaticText(win, (15@10));
 StaticText(win, (800@10));
 layout.nextLine;
 
-
-
 // Loopers
-4.do{ |i|
-	var font = Font("Synchro LET", 14);
-	var bsize = 43;
-	container[i] = ();
-	container[i].view = CompositeView(win, (200@400));
-	container[i].view.background_([Color.black, Color.white, Color.black, Color.white][i]);
-	container[i].layout = container[i].view.addFlowLayout((5@5),(5@5));
-	(numbufs/4).do{ |j|
-		var current_buffer = (i * (numbufs/4))+j;
-		// REC
-		recorder_button[i][j] = Button(container[i].view, (bsize@bsize))
-		.font_(font)
-		.states_([
-			["REC", Color.red, Color.white],
-			["-", Color.white, Color.red]
-		])
-		.action_{ |v|
-			("will record buffer: "++current_buffer).postln;
-			Pbind(
-				\instrument, \buf_recorder,
-				\buf, Pseq([buffer[current_buffer]], 1)
-			).play(quant:4);
-			AppClock.sched(
-				(TempoClock.default.tempo.reciprocal * durations[i])
-				+ ((TempoClock.default.nextBar - TempoClock.default.beats) * TempoClock.default.beatDur),
-				{ v.value_(0) }
-			);
-		};
+var buttonFont = Font(fontName, 14);
+var bsize = 43;
+container.view = CompositeView(win, (200@400));
+container.view.background_(Color.white);
+container.layout = container.view.addFlowLayout((5@5),(5@5));
 
-		// PLAY
-		player_button[i][j] = Button(container[i].view, (bsize@bsize))
-		.font_(font)
-		.states_([
-			["PLAY", Color.green, Color.white],
-			["STOP", Color.black, Color.green(0.5)]
-		])
-		.action_{ |v|
-			if (v.value.booleanValue) {
-				("will play buffer: "++current_buffer).postln;
-				buffer[current_buffer].postln;
-				player[current_buffer] = Pbind(
-					\instrument, \buf_player,
-					\buf, buffer[current_buffer],
-					\dur, durations[i]
-				).play(quant:4);
-			} {
-				("stopping buffer: "++current_buffer).postln;
-				player[current_buffer].stop;
-			}
-		};
+numbufs.do{ |i|
+	// Rec
+	recorder_button[i] = Button(container.view, (bsize@bsize))
+	.font_(buttonFont)
+	.states_([
+		["REC", Color.red, Color.white],
+		["-", Color.white, Color.red]
+	])
+	.action_{ |v|
+		("will record buffer: "++i).postln;
+		Pbind(
+			\instrument, \buf_recorder,
+			\buf, Pseq([buffer[current_buffer]], 1)
+		).play(quant:4);
+		AppClock.sched(
+			(TempoClock.default.tempo.reciprocal * durations[i])
+			+ ((TempoClock.default.nextBar - TempoClock.default.beats) * TempoClock.default.beatDur),
+			{ v.value_(0) }
+		);
+	};
+
+	// Play
+	player_button[i] = Button(container.view, (bsize@bsize))
+	.font_(buttonFont)
+	.states_([
+		["PLAY", Color.green, Color.white],
+		["STOP", Color.black, Color.green(0.5)]
+	])
+	.action_{ |v|
+		if (v.value.booleanValue) {
+			("will play buffer: "++i).postln;
+			buffer[i].postln;
+			player[i] = Pbind(
+				\instrument, \buf_player,
+				\buf, buffer[i],
+				\dur, durations[i] // this still won't work
+			).play(quant:4);
+		} {
+			("stopping buffer: "++i).postln;
+			player[i].stop;
+		}
 	};
 };
-
-StaticText(win, (800@100)).font_(font).string_("Record and play loops in different lengths as you wish.
-If you change the tempo, be sure to hit 'refresh'
-Have fun!!!");
 
 // Players
 metronome.player = Pbind(
@@ -169,6 +163,7 @@ s.waitForBoot {
 
 reload_func.value;
 
+// still needs work here
 SynthDef(\click, { |freq|
 	var snd = SinOsc.ar(freq, 0.5pi) * EnvGen.ar(Env.perc(0.001,0.05), doneAction:2);
 	OffsetOut.ar(click_out, snd!2);
