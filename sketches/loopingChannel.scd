@@ -103,7 +103,7 @@ numbufs.do{ |i|
 		("will record buffer: "++i).postln;
 		Pbind(
 			\instrument, \buf_recorder,
-			\buf, Pseq([buffer[current_buffer]], 1)
+			\buf, Pseq([buffer[i]], 1)
 		).play(quant:4);
 		AppClock.sched(
 			(TempoClock.default.tempo.reciprocal * durations[i])
