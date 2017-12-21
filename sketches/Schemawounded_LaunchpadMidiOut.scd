@@ -6,9 +6,11 @@ if(MIDIClient.initialized.not) {
 	"already init'ed".postln;
 };
 )
+
+(
 ~lpChan = 0;
-~lpIn = MIDIClient.sources.select({arg item, i; (item.device && item.name == "out1")})[0]; //Pick the first launcpad mini you find
-~lpOut = MIDIOut.newByName("SuperCollider", "in1");
+~lpIn = MIDIClient.sources.select({arg item, i; (item.device == "SuperCollider" && item.name == "out1")})[0]; //Pick the first launcpad mini you find
+~lpOut = MIDIOut(0);
 ~lpNoteNums = Array.fill([8,8], {|i,j| j+(i*16) });
 )
 
@@ -39,14 +41,27 @@ r = Routine({
 			~lpOut.noteOff(~lpChan, note, velocity);
 			i = i + 1;
 		}
+
+		velocity = [127, 120, 107].choose;
 	}
 });
 TempoClock.default.sched(0, r);
 )
+r.stop;
+t = TempoClock.default;
 
-
+t.clear;
 
 ~lpOut.control(~lpChan, 0, 32);
-~lpOut.noteOff(~lpChan, 98, 64);
+~lpOut.noteOff(~lpChan, 96, 64);
 
-~lpOut.noteOn(~lpChan, 96, 12);
+~lpOut.noteOn(~lpChan, 96, 62);
+
+
+~colours = [12, 13, 14, 15, 28, 60, 62, 63, 47];
+
+MIDIClient.myinports;
+MIDIClient.myoutports;
+
+
+

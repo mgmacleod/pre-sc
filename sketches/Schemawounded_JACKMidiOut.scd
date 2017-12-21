@@ -1,15 +1,19 @@
 (
 if(MIDIClient.initialized.not) {
 	MIDIClient.init(8, 8, false);
+
 } {
 	// something if not
 	"already init'ed".postln;
 };
 )
+
+(
 ~lpChan = 0;
-~lpIn = MIDIClient.sources.select({arg item, i; (item.device && item.name == "out1")})[0]; //Pick the first launcpad mini you find
-~lpOut = MIDIOut.newByName("SuperCollider", "in1");
+~lpIn = MIDIClient.sources.select({arg item, i; (item.device == "SuperCollider" && item.name == "out1")})[0];
+~lpOut = MIDIOut(0);
 ~lpNoteNums = Array.fill([8,8], {|i,j| j+(i*16) });
+~colours = [12, 13, 14, 15, 28, 60, 62, 63, 47];
 )
 
 (
@@ -32,21 +36,53 @@ var path = [
 var i = 0;
 r = Routine({
 	inf.do{
-		var velocity = [127, 120, 107].choose;
+		var velocity = ~colours.choose;
 		path.do{|note, i|
 			~lpOut.noteOn(~lpChan, note, velocity);
 			0.015.wait;
 			~lpOut.noteOff(~lpChan, note, velocity);
 			i = i + 1;
-		}
+		};
+
+		velocity = ~colours.choose;
+
+		path.reverse.do{|note, i|
+			~lpOut.noteOn(~lpChan, note, velocity);
+			0.015.wait;
+			~lpOut.noteOff(~lpChan, note, velocity);
+			i = i + 1;
+		};
+
 	}
 });
 TempoClock.default.sched(0, r);
 )
+r.stop;
+t = TempoClock.default;
+
+t.clear;
+
+~lpOut.control(~lpChan, 104, 12);
+~lpOut.noteOff(~lpChan, 96, 64);
+
+~lpOut.noteOn(~lpChan, 112, 12);
+
+
+~colours = [12, 13, 14, 15, 28, 60, 62, 63, 47];
+
+MIDIClient.myinports;
+MIDIClient.myoutports;
+MIDIdef.freeAll
+(
+MIDIdef.noteOn(\noteOnTest, {
+	arg vel, num, chan, src;
+	[vel, num, chan, src].postln;
+}, srcID: ~lpIn.uid);
 
 
 
-~lpOut.control(~lpChan, 0, 32);
-~lpOut.noteOff(~lpChan, 98, 64);
 
-~lpOut.noteOn(~lpChan, 96, 12);
+)
+
+
+~lpOut.uid
