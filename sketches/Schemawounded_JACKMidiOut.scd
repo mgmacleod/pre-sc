@@ -10,7 +10,6 @@ if(MIDIClient.initialized.not) {
 
 (
 ~lpChan = 0;
-~lpIn = MIDIClient.sources.select({arg item, i; (item.device == "SuperCollider" && item.name == "out1")})[0];
 ~lpOut = MIDIOut(0);
 ~lpNoteNums = Array.fill([8,8], {|i,j| j+(i*16) });
 ~colours = [12, 13, 14, 15, 28, 60, 62, 63, 47];

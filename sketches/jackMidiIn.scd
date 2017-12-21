@@ -46,7 +46,7 @@ MIDIdef.freeAll;
 MIDIdef.noteOn(\noteOnTest, {
 	arg vel, num, chan, src;
 	[vel, num, chan, src].postln;
-});
+}, srcID: 1234567);
 
 )
 
@@ -55,4 +55,9 @@ MIDIdef.noteOn(\noteOnTest, {
 MIDIFunc.trace(false);
 ~inPorts
 
-MIDIIn.findPort("SuperCollider", "in0");
+MIDIIn.findPort("SuperCollider", "out0").uid_(1234567);
+
+
+SCJConnection.allports.do({|pp| [pp, pp.class].postln;});
+
+c = SCJConnection.connect(
