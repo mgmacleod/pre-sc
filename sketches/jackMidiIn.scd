@@ -1,4 +1,17 @@
 // Learning JACK MIDI in
+// But all JACK MIDI input ports appear to have the same uid and other identifying properties, so are essentially the same port
+
+// this code currently uses ALSA (I'm assuming) to establish direct connections; connections on the jack graph have no effect.
+
+// TODO: figure out if the JACK ports are truly indistinguishable.
+// They report unique uids, but registering a MIDIdef or Func on them produces nothing
+
+/*
+JACK MIDI
+TODO: report findings or die trying
+*/
+
+
 (
 if(MIDIClient.initialized.not) {
 	MIDIClient.init(4, 2, false);
@@ -10,7 +23,7 @@ if(MIDIClient.initialized.not) {
 )
 
 
-
+MIDIFunc.trace(true);
 
 (
 ~inPorts = IdentityDictionary.new;
@@ -50,8 +63,8 @@ MIDIdef.noteOn(\noteOnTest, {
 
 )
 
-
-
+m = MIDIIn.findPort("SuperCollider", "out1");
+m.uid
 MIDIFunc.trace(false);
 ~inPorts
 

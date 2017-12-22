@@ -73,6 +73,7 @@ MIDIClient.myinports;
 MIDIClient.myoutports;
 MIDIdef.freeAll
 (
+// this dog won't bark
 MIDIdef.noteOn(\noteOnTest, {
 	arg vel, num, chan, src;
 	[vel, num, chan, src].postln;
