@@ -33,7 +33,7 @@ MIDIClient.destinations.do({
 });
 )
 
-
+MIDIIn.connectAll;
 MIDIClient.disposeClient;
 
 MIDIClient.sources.class
@@ -46,7 +46,7 @@ MIDIdef.freeAll;
 MIDIdef.noteOn(\noteOnTest, {
 	arg vel, num, chan, src;
 	[vel, num, chan, src].postln;
-}, srcID: 1234567);
+}, srcID: 0);
 
 )
 
@@ -55,9 +55,9 @@ MIDIdef.noteOn(\noteOnTest, {
 MIDIFunc.trace(false);
 ~inPorts
 
-MIDIIn.findPort("SuperCollider", "out0").uid_(1234567);
+MIDIIn.findPort("SuperCollider", "out0").uid = 0;
 
 
 SCJConnection.allports.do({|pp| [pp, pp.class].postln;});
 
-c = SCJConnection.connect(
+MIDIClient.sources.select({arg item, i; (item.device == "SuperCollider" && item.name == "out1")});

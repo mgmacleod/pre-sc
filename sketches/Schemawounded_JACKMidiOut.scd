@@ -10,7 +10,7 @@ if(MIDIClient.initialized.not) {
 
 (
 ~lpChan = 0;
-~lpOut = MIDIOut(0);
+~lpOut = MIDIOut(6);
 ~lpNoteNums = Array.fill([8,8], {|i,j| j+(i*16) });
 ~colours = [12, 13, 14, 15, 28, 60, 62, 63, 47];
 )
@@ -64,7 +64,7 @@ t.clear;
 ~lpOut.control(~lpChan, 104, 12);
 ~lpOut.noteOff(~lpChan, 96, 64);
 
-~lpOut.noteOn(~lpChan, 112, 12);
+~lpOut.noteOn(~lpChan, 113, 12);
 
 
 ~colours = [12, 13, 14, 15, 28, 60, 62, 63, 47];
