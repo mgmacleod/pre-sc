@@ -1,6 +1,11 @@
 // Audio I/O
 
+
+// Make some SynthDefs
 (
+
+// Copy the raw input to a master bus
+// We assume the output bus number (outBus) corresponds to a properly configured audio bus
 SynthDef.new(\audioMasterIn, {
 	arg nin, outBus;
 	var sig;
@@ -17,9 +22,6 @@ SynthDef.new(\audioMasterIn, {
 });
 
 
-)
-
-(
 SynthDef.new(\audioMonitor, {
 	arg nin, nout;
 	var ins, outs;
@@ -32,3 +34,7 @@ SynthDef.new(\audioMonitor, {
 
 
 )
+
+
+
+o = Bus.audio(s, 8);
