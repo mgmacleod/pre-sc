@@ -28,14 +28,14 @@ it's a fucking JACK MIDI output.
 MIDIClient.destinations
 (
 if(MIDIClient.initialized.not) {
-	MIDIClient.init(4, 2, false);
+	MIDIIn.connectAll; // wussing out and using ALSA!
 
 } {
 	// something if not
 	"already init'ed".postln;
 };
 )
-
+MIDIClient.disposeClient
 
 MIDIFunc.trace(true);
 
