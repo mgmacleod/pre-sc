@@ -1,6 +1,17 @@
 // Audio I/O
 
 
+// Set some global variables
+(
+~numInputs = 2;
+~numOutputs = 2;
+
+
+
+
+)
+
+
 // Make some SynthDefs
 (
 
@@ -37,4 +48,4 @@ SynthDef.new(\audioMonitor, {
 
 
 
-o = Bus.audio(s, 8);
+o = Bus.audio(s, ~numInputs);
