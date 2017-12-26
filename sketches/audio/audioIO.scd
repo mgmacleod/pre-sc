@@ -20,6 +20,17 @@ s.boot;
 
 
 
+// Set some global variables
+(
+~numInputs = 2;
+~numOutputs = 2;
+
+
+
+
+)
+
+
 // Make some SynthDefs
 (
 
@@ -55,3 +66,8 @@ SynthDef.new(\audioMonitor, {
 )
 
 
+<<<<<<< HEAD
+=======
+
+o = Bus.audio(s, ~numInputs);
+>>>>>>> be38001c875e47897e158100b52d0c3488e2e907
