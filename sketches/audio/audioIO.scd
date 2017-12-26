@@ -15,25 +15,41 @@ We'll want some pre-processing on some channels: Compression and EQing on mics
 
 */
 s.boot;
-~mstInBus = Bus.audio(s, 8);
+a  = ();
+
+a.isAwesome = false;
+a
+
+(
+(
+
+if(a.isAwesome) {
+	"fog smeller".postln
+} {
+	'ruplerople'.postln
+
+};
+).class;
+)
 // b = Buffer.new(s, s.sampleRate*120, 8);
 
+~ids = IdentityDictionary[];  // or DIctionary or something
 
 
+~ids.foat;
 // Set some global variables
 (
-~numInputs = 2;
-~numOutputs = 2;
+~nin = s.options.numInputBusChannels;
+~nout = s.options.numOutputBusChannels;
 
-
-
+~mstInBus = Bus.audio(s, ~nin);
+~mstOutBus = Bus.audio(s, ~nout);
 
 )
 
 
 // Make some SynthDefs
 (
-
 // Copy the raw input to a master bus
 // We assume the output bus number (outBus) corresponds to a properly configured audio bus
 SynthDef.new(\audioMasterIn, {
@@ -42,13 +58,6 @@ SynthDef.new(\audioMasterIn, {
 	sig = SoundIn.ar((0..nin));
 
 	Out.ar(outBus, sig);
-	/*
-	nin.do({
-
-
-	});*/
-
-
 });
 
 
@@ -66,8 +75,3 @@ SynthDef.new(\audioMonitor, {
 )
 
 
-<<<<<<< HEAD
-=======
-
-o = Bus.audio(s, ~numInputs);
->>>>>>> be38001c875e47897e158100b52d0c3488e2e907
