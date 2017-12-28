@@ -15,28 +15,11 @@ We'll want some pre-processing on some channels: Compression and EQing on mics
 
 */
 s.boot;
-a  = ();
+a = ();
 
-a.isAwesome = false;
-a
-
-(
-(
-
-if(a.isAwesome) {
-	"fog smeller".postln
-} {
-	'ruplerople'.postln
-
-};
-).class;
-)
-// b = Buffer.new(s, s.sampleRate*120, 8);
-
-~ids = IdentityDictionary[];  // or DIctionary or something
+a.isAwesome = true;
 
 
-~ids.foat;
 // Set some global variables
 (
 ~nin = s.options.numInputBusChannels;
