@@ -105,11 +105,11 @@ numbufs.do{ |i|
 			\instrument, \buf_recorder,
 			\buf, Pseq([buffer[i]], 1)
 		).play(quant:4);
-		AppClock.sched(
+		/*AppClock.sched(
 			(TempoClock.default.tempo.reciprocal * durations[i])
 			+ ((TempoClock.default.nextBar - TempoClock.default.beats) * TempoClock.default.beatDur),
 			{ v.value_(0) }
-		);
+		);*/
 	};
 
 	// Play
