@@ -20,4 +20,4 @@
 
 )
 
-~infiniteHoldReverb.set(\feedback, 1);
+~infiniteHoldReverb.set(\feedback, 0.5);
