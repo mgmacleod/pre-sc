@@ -50,3 +50,7 @@ TempoClock.default.sched(0, r);
 ~lpOut.noteOff(~lpChan, 98, 64);
 
 ~lpOut.noteOn(~lpChan, 96, 12);
+
+
+
+~lpNoteNums
