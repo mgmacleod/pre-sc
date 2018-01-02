@@ -28,7 +28,7 @@ ServerQuit.removeAll;
 
 
 (
-// print some midi info, for reference
+// midi config
 
 
 ~msrcs = MIDIClient.sources;
@@ -89,7 +89,18 @@ MIDIFunc.trace(false);
 
 ~makeBusses = {
 	~bus = Dictionary.new;
-	~bus.add(\reverb -> Bus.audio(s,2));
+	~bus.add(\glpIn -> Bus.audio(s,2));
+	~bus.add(\micIn1 -> Bus.audio(s,1));
+
+	~bus.add(\rvb1 -> Bus.audio(s,2));
+	~bus.add(\rvb2 -> Bus.audio(s,2));
+	~bus.add(\rvb3 -> Bus.audio(s,2));
+
+	~bus.add(\dly1 -> Bus.audio(s,2));
+	~bus.add(\dly2 -> Bus.audio(s,2));
+	~bus.add(\dly3 -> Bus.audio(s,2));
+
+
 };
 
 ~cleanup = {
