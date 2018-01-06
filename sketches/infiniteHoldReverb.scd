@@ -23,6 +23,7 @@
 ~infiniteHoldReverb.set(\feedback, 0.8);
 
 
+// Version using FbNode instead of LocalIn/LocalOut
 (
 ~feedbackReverb = {
 	arg feedback = 1;
@@ -41,4 +42,4 @@
 
 )
 
-~feedbackReverb.set(\feedback, 0.8);
+~feedbackReverb.set(\feedback, 0);
