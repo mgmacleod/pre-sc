@@ -212,5 +212,19 @@ SynthDef(\dubecho,{|in, out, length = 1, fb = 0.8, sep = 0.012|
 // send something
 play{ Out.ar(~bus, LFGauss.ar(1, 0.1, loop:0, doneAction:2) * Blip.ar(80, 8)) }
 
+(
+{
+	var sig;
+	sig = LFGauss.ar(1, 0.1, loop:0, doneAction:2) * Blip.ar(80, 8);
+
+	// output to the delay bus
+	Out.ar(~bus, sig);
+
+	// output to main
+	Out.ar(0, sig!2);
+}.play;
+)
+
+
 // turn it off
 ~echo.free;
