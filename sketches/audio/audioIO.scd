@@ -15,9 +15,6 @@ We'll want some pre-processing on some channels: Compression and EQing on mics
 
 */
 s.boot;
-a = ();
-
-a.isAwesome = true;
 
 
 // Set some global variables
