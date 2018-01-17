@@ -1,4 +1,4 @@
-// Granular synth, yoinked from ... somewhere
+// Granular synth, yoinked from ... somewhere (https://www.youtube.com/watch?v=aMXgtgH2efw)
 (
 SynthDef(\grainBoy,
 
