@@ -293,7 +293,7 @@ LiveModularInstrument {
 
 		//set up the control devices and control GUI
 		if(controllers == nil, {
-			controllers = [Manta_Mod.start, Lemur_Mod.start("10.0.0.3"), MIDI_Mod.start];
+			controllers = [MIDI_Mod.start];
 		});
 
 		if(whichClassList == nil, {whichClassList = 'normal'});
