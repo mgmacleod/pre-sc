@@ -3,6 +3,8 @@ Some feedback experiments.  PREs, by definition :)
 */
 
 
+// Basic feedback with no effects
+// not partic interesting :(
 (
 SynthDef.new(\fb1, {
 	arg inBus=4, outBus=0, feedback=0.5;
@@ -15,12 +17,12 @@ SynthDef.new(\fb1, {
 
 	fbNode.write(local*feedback);
 
-	Out.ar(outBus, sig+local);
+	Out.ar(outBus, (sig+local)!2);
 }).add;
 
 )
 
 a = Synth.new(\fb1);
-a.set(\feedback, 0.8)
+a.set(\feedback, 0.85)
 
 
